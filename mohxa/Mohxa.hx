@@ -58,7 +58,6 @@ class MohxaTestSet extends MohxaRunnable {
 
     public var tests : Array<MohxaTest>;
     public var groups : Array<MohxaTestSet>;
-    public var items : Map<String, MohxaRunnable>;
     public var depth : Int = 0;
     var group_index : Int = 0;
 
