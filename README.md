@@ -15,6 +15,10 @@ A BDD style test library based closely on http://visionmedia.github.io/mocha/
 to do :    
 async callbacks, other reporting (json etc).
 
+**NOTE** 
+Tested on neko + cpp only.
+On C++ -debug flag is required for Stack traces.
+
 ###How does it look?
 
 ```haxe
