@@ -1,4 +1,4 @@
-package mohxa;
+﻿package mohxa;
     //Simple test runner with simple logging
     //MIT License, based on https://github.com/visionmedia/mocha 
 
@@ -140,7 +140,11 @@ class Mohxa {
     public function new() { 
         failures = new Map();
         create_root_set();
-        symbols = { ok: '✓', err: '✖', dot: '▸' };
+        #if windows
+            symbols = { ok: 'ok', err: '!!', dot: '>' };
+        #else
+            symbols = { ok: '✓', err: '✖', dot: '▸' };
+        #end
     } //new
     function create_root_set() {
         current_set = test_sets = new Mohxa.MohxaTestSet(this, '', null);
