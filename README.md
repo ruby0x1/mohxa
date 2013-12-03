@@ -17,43 +17,45 @@ async callbacks, other reporting (json etc).
 
 ###How does it look?
 
-    import structural.Stack;
+```haxe
+import structural.Stack;
 
-    class StackTest extends Mohxa {
+class StackTest extends Mohxa {
 
-        public function new() {
+    public function new() {
 
-            super();
+        super();
 
-            describe('Stack Test', function(){
+        describe('Stack Test', function(){
 
-                log('we will create 2 different stacks');
-                log('one with ints, one with strings');
+            log('we will create 2 different stacks');
+            log('one with ints, one with strings');
 
-                var int_stack : Stack<Int>;
-                var string_stack : Stack<String>;
+            var int_stack : Stack<Int>;
+            var string_stack : Stack<String>;
 
-                before(function(){
+            before(function(){
 
-                    log('creating ... ');
+                log('creating ... ');
 
-                    int_stack = new Stack<Int>();
-                    string_stack = new Stack<String>();
+                int_stack = new Stack<Int>();
+                string_stack = new Stack<String>();
 
-                });
+            });
 
-                it('should each start with a 0 length', function(){
-                    equal(int_stack.length, 0, 'int stack');
-                    equal(string_stack.length, 0, 'string stack');
-                });
+            it('should each start with a 0 length', function(){
+                equal(int_stack.length, 0, 'int stack');
+                equal(string_stack.length, 0, 'string stack');
+            });
 
-                ...
+            ...
 
-            }); //Stack Test
+        }); //Stack Test
 
-        } //new
+    } //new
 
-    } //StackTest
+} //StackTest
+```
 
 ### How does the output look?
 
