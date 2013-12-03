@@ -132,6 +132,7 @@ class Mohxa {
     var failures : Map<Int, MohxaFailure>;
     var total : Int = 0;
     var total_time : Float = 0;
+    var system_name : String = '';
 
     public var current_depth : Int = 0;
     public var current_set : Mohxa.MohxaTestSet;
@@ -140,11 +141,12 @@ class Mohxa {
     public function new() { 
         failures = new Map();
         create_root_set();
-        #if windows
+        system_name = Sys.systemName();
+        if(system_name == "Windows") {
             symbols = { ok: 'ok', err: '!!', dot: '>' };
-        #else
+        } else {
             symbols = { ok: '✓', err: '✖', dot: '▸' };
-        #end
+        }
     } //new
     function create_root_set() {
         current_set = test_sets = new Mohxa.MohxaTestSet(this, '', null);
@@ -264,14 +266,16 @@ class Mohxa {
     }
 
     public function tabs(t:Int) { var s = ''; for(i in 0 ... (t*2)) { s+=' '; } return s; }
-    function ok() { return "\033[92m"+symbols.ok+"\033[0m"; }
-    function error() { return "\033[91m"+symbols.err+"\033[0m"; }
-    function dot() { return symbols.dot; }
-    function reset() { return "\033[0m"; }
-    function doreset() { Sys.print(reset()); }
-    function yellow() { return "\033[93m"; }
-    function green() { return "\033[92m"; }
-    function red() { return "\033[91m"; }
-    function bright() { return "\033[1m"; }
-    function dim() { return "\033[2m"; }    
+
+    function doreset()  { Sys.print(reset()); }    
+    function dot()      { return symbols.dot; }
+    function reset()    { return (system_name == "Windows") ? '' : "\033[0m";  }    
+    function yellow()   { return (system_name == "Windows") ? '' : "\033[93m"; }
+    function green()    { return (system_name == "Windows") ? '' : "\033[92m"; }
+    function red()      { return (system_name == "Windows") ? '' : "\033[91m"; }
+    function bright()   { return (system_name == "Windows") ? '' : "\033[1m";  }
+    function dim()      { return (system_name == "Windows") ? '' : "\033[2m";  }    
+    function ok()       { return (system_name == "Windows") ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
+    function error()    { return (system_name == "Windows") ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
+    
 }
