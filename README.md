@@ -2,6 +2,8 @@
 ---
 A BDD style test library based closely on http://visionmedia.github.io/mocha/
 
+(still pronounced mocha)
+
 ###Features
 ---
 
