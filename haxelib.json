@@ -1,0 +1,10 @@
+{
+  "name": "mohxa",
+  "url" : "https://github.com/underscorediscovery/mohxa/",
+  "license": "MIT",
+  "tags": ["cross"],
+  "description": "A BDD style test library based closely on http://visionmedia.github.io/mocha/, for haxe",
+  "version": "1.0.0",
+  "releasenote": "1.0.0 - Initial release. See README.",
+  "contributors": ["underscorediscovery"]
+}
