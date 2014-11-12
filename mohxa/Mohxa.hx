@@ -7,187 +7,45 @@ package mohxa;
 typedef MohxaHandler = Void->Void;
 
 
-class MohxaRunnable {
-    public var runner : Mohxa;
-    public var name : String;
-    public var run : MohxaHandler;
-
-    public var before : MohxaHandler;
-    public var after : MohxaHandler;
-    public var beforeEach : MohxaHandler;
-    public var afterEach : MohxaHandler;
-
-    public function new(_runner:Mohxa, _name:String, _run:MohxaHandler) {
-        runner = _runner; name = _name; run = _run;
-        init();
-    }
-
-    public function init() {
-
-    }
-
-
-}
-
-class MohxaTest extends MohxaRunnable {
-        //test cases stored in this test
-    public var set : MohxaTestSet;
-
-}
-
-class MohxaFailure {
-
-    public var details : String = 'Unknown';
-    public var stack : Array<haxe.CallStack.StackItem>;
-    public var test : MohxaTest;
-
-    public function new(_det:String, _test:MohxaTest) {
-        details = _det;
-        test = _test;
-        stack = haxe.CallStack.exceptionStack();
-    }
-
-    public function display(t:Int) {
-        var _parsed = test.runner.strip_mohxa_calls(stack);
-        for(item in _parsed) {
-            Mohxa._log( test.runner.tabs(t) + item );
-        }
-    }
-
-}
-
-class MohxaTestSet extends MohxaRunnable {
-
-    public var tests : Array<MohxaTest>;
-    public var groups : Array<MohxaTestSet>;
-    public var depth : Int = 0;
-    var group_index : Int = 0;
-
-    public function add_group( _group:MohxaTestSet ) {
-        _group.depth = depth+1;
-        groups.push( _group );
-        // trace( runner.tabs(depth) + ' > adding group ' + _group.name + ' at ' + (depth+1));
-    }
-    public function add_test( _test:MohxaTest ) {
-        _test.set = this;
-        tests.push( _test );
-        // trace( runner.tabs(depth) + ' > adding test ' + _test.name );
-    }
-
-    public override function init() {
-        tests = [];
-        groups = [];
-    }
-
-    public function _traverse() {
-
-        if( before != null ) before();
-
-        var n = Math.pow(10,3);
-
-        for(test in tests) {
-
-            runner.current_depth = test.set.depth+1;
-
-            if( beforeEach != null ) beforeEach();
-
-            try {
-                runner.onrun(test);
-
-                var test_time = haxe.Timer.stamp();
-
-                    test.run();
-
-                test_time = (haxe.Timer.stamp() - test_time) * 1000; test_time = (Std.int(test_time*n) / n);
-
-                    runner.onpass(test, test_time);
-
-            } catch(e:Dynamic) {
-
-                runner.onfail( new MohxaFailure(e,test) );
-
-            } //catch
-
-            if( afterEach != null ) afterEach();
-        } //for each test
-
-        for(group in groups) {
-            runner.current_depth = depth;
-            runner.current_set = group;
-            Mohxa._log(runner.tabs(depth) + group.name );
-            group.run();
-            group._traverse();
-        } //for each group
-
-        runner.current_depth = 0;
-
-        if( after != null ) after();
-    }
-
-}
-
 class Mohxa {
 
     public var failed : Int = 0;
     public var total : Int = 0;
     public var total_time : Float = 0;
 
-    var test_sets : Mohxa.MohxaTestSet;
-    var symbols : Dynamic;
-
-    var failures : Map<Int, MohxaFailure>;
-    var system_name : String = '';
-
     public var current_depth : Int = 0;
     public var current_set : Mohxa.MohxaTestSet;
 
+    var test_sets : Mohxa.MohxaTestSet;
+    var failures : Map<Int, MohxaFailure>;
+
+    //logging
+
+        var symbols : { ok:String, err:String, dot:String };
+        var system_name : String = '';
+        var use_colors : Bool = true;
+        var use_specialchars : Bool = true;
+
 // Class specifics
+
     public function new() {
+
         failures = new Map();
-        create_root_set();
-        #if !js
-        system_name = Sys.systemName();
+
+        #if js
+            system_name = "Web";
         #else
-        system_name = "Windows"; //disables console colors in browser
+            system_name = Sys.systemName();
         #end
-        if(system_name == "Windows") {
-            symbols = { ok: 'ok', err: '!!', dot: '>' };
-        } else {
-            symbols = { ok: '✓', err: '✖', dot: '▸' };
-        }
+
+            //control coloring etc by platform
+        setup_logging();
+
+            //create the base test set
+            //to add subsequent tests to
+        create_root_set();
+
     } //new
-
-    function create_root_set() {
-
-        current_set = test_sets = new Mohxa.MohxaTestSet(this, '', null);
-
-        test_sets.init();
-
-    } //create_root_set
-
-
-    public function strip_mohxa_calls(list:Array<haxe.CallStack.StackItem>) : Array<String> {
-
-        var results = [];
-
-        for(item in list) {
-            var _params = item.getParameters();
-            if( Std.string(_params[1]).indexOf('Mohxa.hx') == -1) {
-                results.push( ' at ' + _params[1] + ':' + _params[2] );
-            }
-        }
-
-        return results;
-
-    } //strip_mohxa_calls
-
-    public function log(e:Dynamic) {
-
-        var _parsed = strip_mohxa_calls( haxe.CallStack.callStack() );
-
-        _log( tabs(current_depth+2) + dim() + _parsed[0] + ': ' + e + reset() );
-
-    } //log
 
     public function run() {
 
@@ -199,7 +57,7 @@ class Mohxa {
             test_sets._traverse();
 
         total_time = (haxe.Timer.stamp() - total_time) * 1000;
-        var n = Math.pow(10,3); total_time = (Std.int(total_time*n) / n);
+        total_time = fixed(total_time);
 
         _log('\n');
 
@@ -227,18 +85,27 @@ class Mohxa {
 
 //Helpers
 
-    @:noCompletion public function onfail( failure:MohxaFailure ) {
+    @:noCompletion
+    public function onfail( failure:MohxaFailure ) {
+
         _log( tabs(failure.test.set.depth+3) + error() + red() + ' fail (' + failed + ')'  + reset());
         failures.set( failed, failure );
         failed++;
-    }
 
-    @:noCompletion public function onrun(t:MohxaTest) {
+    } //onfail
+
+    @:noCompletion
+    public function onrun(t:MohxaTest) {
+
         _log( tabs(t.set.depth+2) + dim() + dot() + ' ' + t.name +  reset() );
-    }
 
-    @:noCompletion public function onpass(t:MohxaTest, runtime:Float ) {
+    } //onrun
+
+    @:noCompletion
+    public function onpass(t:MohxaTest, runtime:Float ) {
+
         var _time = '';
+
         if(runtime > 50 && runtime < 100) {
             _time = reset() + yellow() + ' (' + runtime + 'ms)';
         } else if(runtime > 100) {
@@ -246,36 +113,60 @@ class Mohxa {
         }
 
         _log( tabs(t.set.depth+3) + ok() + green() + ' pass' + _time + reset() );
-    }
+
+    } //onpass
 
 //API
 
+
+    @:generic
+    public function log<T>( e:T ) {
+
+        var _parsed = strip_mohxa_calls( haxe.CallStack.callStack() );
+
+        _log( tabs(current_depth+2) + dim() + _parsed[0] + ': ' + e + reset() );
+
+    } //log
+
     public function it( desc:String, handler:MohxaHandler ) {
+
         total++;
         current_set.add_test( new MohxaTest(this, desc, handler) );
-    }
+
+    } //it
 
     public function describe( name:String, handler:MohxaHandler ) {
+
         if(current_set != null) {
             current_set.add_group( new MohxaTestSet(this, name, handler) );
         }
-    }
+
+    } //describe
+
 
     public function before( handler:MohxaHandler ) {
+
         current_set.before = handler;
-    }
+
+    } //before
 
     public function after( handler:MohxaHandler ) {
+
         current_set.after = handler;
-    }
+
+    } //after
 
     public function beforeEach( handler:MohxaHandler ) {
+
         current_set.beforeEach = handler;
-    }
+
+    } //beforeEach
 
     public function afterEach( handler:MohxaHandler ) {
+
         current_set.afterEach = handler;
-    }
+
+    } //afterEach
 
     @:generic
     public function equal<T>(value:T, expected:T, ?tag:String = '') {
@@ -318,7 +209,21 @@ class Mohxa {
         }
     }
 
-    @:noCompletion public static function _log(v:Dynamic, ?print:Bool = false) {
+//Internal
+
+    function create_root_set() {
+
+        current_set = test_sets = new Mohxa.MohxaTestSet(this, '', null);
+
+        test_sets.init();
+
+    } //create_root_set
+
+//Internal API helpers
+
+    @:noCompletion
+    public static function _log(v:Dynamic, ?print:Bool = false) {
+
         #if (cpp || neko)
             if(!print) {
                 Sys.println(v);
@@ -330,19 +235,211 @@ class Mohxa {
         #else
             trace(v);
         #end
+
+    } //_log
+
+    @:noCompletion
+    public function strip_mohxa_calls(list:Array<haxe.CallStack.StackItem>) : Array<String> {
+
+        var results = [];
+
+        for(item in list) {
+            var _params = item.getParameters();
+            if( Std.string(_params[1]).indexOf('Mohxa.hx') == -1) {
+                results.push( ' at ' + _params[1] + ':' + _params[2] );
+            }
+        }
+
+        return results;
+
+    } //strip_mohxa_calls
+
+    @:noCompletion
+    public function tabs(t:Int, tabwidth:Int=2) {
+
+        var s = '';
+        for(i in 0 ... (t*tabwidth)) {
+            s+=' ';
+        }
+
+        return s;
+
+    } //tabs
+
+    @:noCompletion
+    public static function fixed(v:Float, p:Int=3) {
+        var n = Math.pow(10,p);
+        return (Std.int(v*n) / n);
     }
 
-    public function tabs(t:Int) { var s = ''; for(i in 0 ... (t*2)) { s+=' '; } return s; }
+    function setup_logging() {
+
+        switch(system_name) {
+            case "Web", "Windows": use_colors = false;
+            case _: use_colors = true;
+        }
+
+        if(!use_specialchars) {
+            symbols = { ok: 'ok', err: '!!', dot: '>' };
+        } else {
+            symbols = { ok: '✓', err: '✖', dot: '▸' };
+        }
+
+    } //setup_logging
 
     function doreset()  { _log(reset(), true); }
     function dot()      { return symbols.dot; }
-    function reset()    { return (system_name == "Windows") ? '' : "\033[0m";  }
-    function yellow()   { return (system_name == "Windows") ? '' : "\033[93m"; }
-    function green()    { return (system_name == "Windows") ? '' : "\033[92m"; }
-    function red()      { return (system_name == "Windows") ? '' : "\033[91m"; }
-    function bright()   { return (system_name == "Windows") ? '' : "\033[1m";  }
-    function dim()      { return (system_name == "Windows") ? '' : "\033[2m";  }
-    function ok()       { return (system_name == "Windows") ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
-    function error()    { return (system_name == "Windows") ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
+    function reset()    { return !use_colors ? '' : "\033[0m";  }
+    function yellow()   { return !use_colors ? '' : "\033[93m"; }
+    function green()    { return !use_colors ? '' : "\033[92m"; }
+    function red()      { return !use_colors ? '' : "\033[91m"; }
+    function bright()   { return !use_colors ? '' : "\033[1m";  }
+    function dim()      { return !use_colors ? '' : "\033[2m";  }
+    function ok()       { return !use_colors ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
+    function error()    { return !use_colors ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
 
-}
+} //Mohxa
+
+class MohxaRunnable {
+
+    public var runner : Mohxa;
+    public var name : String;
+    public var run : MohxaHandler;
+
+    public var before : MohxaHandler;
+    public var after : MohxaHandler;
+    public var beforeEach : MohxaHandler;
+    public var afterEach : MohxaHandler;
+
+    public function new(_runner:Mohxa, _name:String, _run:MohxaHandler) {
+
+        runner = _runner; name = _name; run = _run;
+        init();
+
+    } //new
+
+    public function init() {
+
+    } //init
+
+} //MohxaRunnable
+
+class MohxaTest extends MohxaRunnable {
+        //test cases stored in this test
+    public var set : MohxaTestSet;
+
+} //MohxaTest
+
+class MohxaFailure {
+
+    public var details : String = 'Unknown';
+    public var stack : Array<haxe.CallStack.StackItem>;
+    public var test : MohxaTest;
+
+    public function new(_det:String, _test:MohxaTest) {
+
+        details = _det;
+        test = _test;
+        stack = haxe.CallStack.exceptionStack();
+
+    } //new
+
+    public function display(t:Int) {
+
+        var _parsed = test.runner.strip_mohxa_calls(stack);
+        for(item in _parsed) {
+            Mohxa._log( test.runner.tabs(t) + item );
+        }
+
+    } //display
+
+} //MohxaFailure
+
+class MohxaTestSet extends MohxaRunnable {
+
+    public var tests : Array<MohxaTest>;
+    public var groups : Array<MohxaTestSet>;
+    public var depth : Int = 0;
+
+    var group_index : Int = 0;
+
+    public function add_group( _group:MohxaTestSet ) {
+
+        _group.depth = depth+1;
+        groups.push( _group );
+        // trace( runner.tabs(depth) + ' > adding group ' + _group.name + ' at ' + (depth+1));
+
+    } //add_group
+
+    public function add_test( _test:MohxaTest ) {
+
+        _test.set = this;
+        tests.push( _test );
+        // trace( runner.tabs(depth) + ' > adding test ' + _test.name );
+
+    } //add_test
+
+    public override function init() {
+
+        tests = [];
+        groups = [];
+
+    } //init
+
+    public function _traverse() {
+
+        if( before != null ) {
+            before();
+        }
+
+        for(test in tests) {
+
+            runner.current_depth = test.set.depth+1;
+
+            if( beforeEach != null ) beforeEach();
+
+            try {
+                runner.onrun(test);
+
+                var test_time = haxe.Timer.stamp();
+
+                    test.run();
+
+                test_time = (haxe.Timer.stamp() - test_time) * 1000;
+                test_time = Mohxa.fixed(test_time);
+
+                    runner.onpass(test, test_time);
+
+            } catch(e:Dynamic) {
+
+                runner.onfail( new MohxaFailure(e,test) );
+
+            } //catch
+
+            if( afterEach != null ) afterEach();
+        } //for each test
+
+        for(group in groups) {
+
+            runner.current_depth = depth;
+            runner.current_set = group;
+
+            Mohxa._log(runner.tabs(depth) + group.name );
+
+            group.run();
+            group._traverse();
+
+        } //for each group
+
+        runner.current_depth = 0;
+
+        if( after != null ) {
+            after();
+        }
+
+    } //traverse
+
+} //MohxaTestSet
+
+
+
