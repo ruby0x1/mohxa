@@ -4,7 +4,7 @@
   "license": "MIT",
   "tags": ["cross"],
   "description": "A BDD style test library based closely on http://visionmedia.github.io/mocha/, for haxe",
-  "version": "1.0.0",
-  "releasenote": "1.0.0 - Initial release. See README.",
+  "version": "1.0.1",
+  "releasenote": "1.0.1 - lots of code clean up, remove Dynamic use where not needed, replace with @:generic",
   "contributors": ["underscorediscovery"]
 }
