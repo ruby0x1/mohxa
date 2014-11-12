@@ -77,7 +77,8 @@ class StackTest extends Mohxa {
  
 
 ### History
-1.0.0 - Initial release
+- 1.0.1 - lots of code clean up, remove Dynamic use where not needed, replace with @:generic   
+- 1.0.0 - Initial release
 
 ### That's it
 
