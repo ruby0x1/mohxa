@@ -21,9 +21,10 @@ class Mohxa {
 
     //logging
 
+        public static var use_colors : Bool = true;
+
         var symbols : { ok:String, err:String, dot:String };
         var system_name : String = '';
-        var use_colors : Bool = true;
         var use_specialchars : Bool = true;
 
 // Class specifics
@@ -274,9 +275,11 @@ class Mohxa {
 
     function setup_logging() {
 
-        switch(system_name) {
-            case "Web", "Windows": use_colors = false;
-            case _: use_colors = true;
+        if(use_colors) {
+            switch(system_name) {
+                case "Web", "Windows": use_colors = false;
+                case _: use_colors = true;
+            }
         }
 
         if(!use_specialchars) {
