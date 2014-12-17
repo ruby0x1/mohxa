@@ -9,6 +9,10 @@ typedef MohxaHandler = Void->Void;
 
 class Mohxa {
 
+    static var tfailed = 0;
+    static var ttotal = 0;
+    static var ttime = 0.0;
+
     public var failed : Int = 0;
     public var total : Int = 0;
     public var total_time : Float = 0;
@@ -23,9 +27,9 @@ class Mohxa {
 
         public static var use_colors : Bool = true;
 
-        var symbols : { ok:String, err:String, dot:String };
-        var system_name : String = '';
-        var use_specialchars : Bool = true;
+        static var symbols : { ok:String, err:String, dot:String };
+        static var system_name : String = '';
+        static var use_specialchars : Bool = true;
 
 // Class specifics
 
@@ -58,6 +62,7 @@ class Mohxa {
             test_sets._traverse();
 
         total_time = (haxe.Timer.stamp() - total_time) * 1000;
+        ttime += total_time;
         total_time = fixed(total_time);
 
         _log('\n');
@@ -92,6 +97,7 @@ class Mohxa {
         _log( tabs(failure.test.set.depth+3) + error() + red() + ' fail (' + failed + ')'  + reset());
         failures.set( failed, failure );
         failed++;
+        tfailed++;
 
     } //onfail
 
@@ -132,6 +138,7 @@ class Mohxa {
     public function it( desc:String, handler:MohxaHandler ) {
 
         total++;
+        ttotal++;
         current_set.add_test( new MohxaTest(this, desc, handler) );
 
     } //it
@@ -173,20 +180,20 @@ class Mohxa {
     public function equal<T>(value:T, expected:T, ?tag:String = '') {
 
         if( value != expected ) {
-            _log( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
+            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
             throw (value + ' != ' + expected) + '  ' + ((tag.length>0) ? '('+tag+')' : '');
         } else {
-            _log( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );  //' ' +reset() + green() + (value + ' == ' + expected) +
+            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );  //' ' +reset() + green() + (value + ' == ' + expected) +
         }
     }
 
     @:generic
     public function notequal<T>(value:T, unexpected:T, ?tag:String = '') {
         if( value == unexpected ) {
-            _log( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' +reset() + red() + (value + ' == ' + unexpected) + reset() );
+            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' +reset() + red() + (value + ' == ' + unexpected) + reset() );
             throw (value + ' == ' + unexpected) + '  ' + ((tag.length>0) ? '('+tag+')' : '');
         } else {
-            _log( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
+            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
         }
     }
 
@@ -194,19 +201,19 @@ class Mohxa {
 
     public function equalfloat(value:Float, expected:Float, ?tag:String = '') {
         if(!(Math.abs(expected - value) < epsilon)) {
-            _log( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
+            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
             throw (value + ' == ' + expected) + ' (float) ' + ((tag.length>0) ? '('+tag+')' : '');
         } else {
-            _log( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
+            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
         }
     }
 
     public function equalint(value:Int, expected:Int, ?tag:String = '') {
         if(Std.int(value) != Std.int(expected)) {
-            _log( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
+            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
             throw (value + ' == ' + expected) + ' (int) ' + ((tag.length>0) ? '('+tag+')' : '');
         } else {
-            _log( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
+            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
         }
     }
 
@@ -221,6 +228,12 @@ class Mohxa {
     } //create_root_set
 
 //Internal API helpers
+
+    public static var verbose = false;
+    @:noCompletion
+    public static function _logv(v:Dynamic, ?print:Bool = false) {
+        if(verbose) _log(v, print);
+    }
 
     @:noCompletion
     public static function _log(v:Dynamic, ?print:Bool = false) {
@@ -267,6 +280,16 @@ class Mohxa {
 
     } //tabs
 
+    public static function finish() {
+        ttime = fixed(ttime);
+        _log('Mohxa finished with :');
+        if(tfailed > 0) {
+            _log( error() + ' ' + tfailed + ' of ' + ttotal + ' failed  (' + dim() + ttime + 'ms' + reset() + ') \n' );
+        } else {
+            _log( ok() + green() + ' ' + ttotal + ' tests completed. ' +reset()+ dim() + ' (' + ttime + 'ms' + ')' + reset());
+        }
+    }
+
     @:noCompletion
     public static function fixed(v:Float, p:Int=3) {
         var n = Math.pow(10,p);
@@ -290,16 +313,16 @@ class Mohxa {
 
     } //setup_logging
 
-    function doreset()  { _log(reset(), true); }
-    function dot()      { return symbols.dot; }
-    function reset()    { return !use_colors ? '' : "\033[0m";  }
-    function yellow()   { return !use_colors ? '' : "\033[93m"; }
-    function green()    { return !use_colors ? '' : "\033[92m"; }
-    function red()      { return !use_colors ? '' : "\033[91m"; }
-    function bright()   { return !use_colors ? '' : "\033[1m";  }
-    function dim()      { return !use_colors ? '' : "\033[2m";  }
-    function ok()       { return !use_colors ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
-    function error()    { return !use_colors ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
+    static function doreset()  { _log(reset(), true); }
+    static function dot()      { return symbols.dot; }
+    static function reset()    { return !use_colors ? '' : "\033[0m";  }
+    static function yellow()   { return !use_colors ? '' : "\033[93m"; }
+    static function green()    { return !use_colors ? '' : "\033[92m"; }
+    static function red()      { return !use_colors ? '' : "\033[91m"; }
+    static function bright()   { return !use_colors ? '' : "\033[1m";  }
+    static function dim()      { return !use_colors ? '' : "\033[2m";  }
+    static function ok()       { return !use_colors ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
+    static function error()    { return !use_colors ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
 
 } //Mohxa
 
