@@ -10,14 +10,23 @@ A BDD style test library based closely on http://visionmedia.github.io/mocha/
 - nested test groups
 - before, after, beforeEach, afterEach per group
 - formatted logging from inside tests
-- `equal` helper
+- `equal`,`notequal`,`equalfloat`,`equalint` helper
 
-to do :    
-async callbacks, other reporting (json etc).
+**todo**    
 
-**NOTE** 
-Tested on neko + cpp only.
-On C++ -debug flag is required for Stack traces.
+- async
+- other output formats (json etc).
+
+**note**   
+Usually -debug flag is required for Stack traces.
+
+### Install options
+
+`haxelib install mohxa`   
+`haxelib git mohxa https://github.com/underscorediscovery/mohxa.git`    
+`haxelib local mohxa /path/to/mohxa-1.0.2.zip` (from releases)   
+
+---
 
 ###How does it look?
 
@@ -67,16 +76,12 @@ class StackTest extends Mohxa {
 
 ![failing](./screens/mohxa_failing.png)
 
+![many](./screens/mohxa_many.png)
+
 ---
 
-### Install options
-
-`haxelib install mohxa`   
-`haxelib git mohxa https://github.com/underscorediscovery/mohxa.git`    
-`haxelib local mohxa /path/to/mohxa-1.0.0.zip` (from releases)   
- 
-
 ### History
+- 1.0.2 - lots MORE code clean up, update readme, tested on other targets    
 - 1.0.1 - lots of code clean up, remove Dynamic use where not needed, replace with @:generic   
 - 1.0.0 - Initial release
 
