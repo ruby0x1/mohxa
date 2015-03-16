@@ -7,6 +7,9 @@ package mohxa;
 typedef MohxaHandler = Void->Void;
 
 
+@:allow(mohxa.MohxaTestSet)
+@:allow(mohxa.MohxaRunnable)
+@:allow(mohxa.MohxaFailure)
 class Mohxa {
 
     static var tfailed = 0;
@@ -39,6 +42,9 @@ class Mohxa {
 
         #if js
             system_name = "Web";
+            use_specialchars = false;
+        #elseif flash
+            system_name = "flash";
         #else
             system_name = Sys.systemName();
         #end
@@ -54,10 +60,12 @@ class Mohxa {
 
     public function run() {
 
-        _log('\n');
+        i('\n');
 
         failed = 0;
         total_time = haxe.Timer.stamp();
+
+        i( t(current_depth+1) + '$dot running ... $reset\n');
 
             test_sets._traverse();
 
@@ -65,25 +73,30 @@ class Mohxa {
         ttime += total_time;
         total_time = fixed(total_time);
 
-        _log('\n');
+        i('\n');
 
         if(failed > 0) {
-            _log( error() + ' ' + failed + ' of ' + total + ' failed  (' + dim() + total_time + 'ms' + reset() + ') \n' );
+            i( '$error $failed of $total failed ($dim ${total_time}ms $reset) \n' );
+
                 //display all failures
             var _f : Int = 0;
+
             for(failure in failures) {
-                _log( tabs(1) + red() + _f  + ') ' + reset() + failure.test.name  );
-                _log( tabs(2) + error() + dim() + ' because ' + reset() + red() + failure.details + reset() );
-                _log( dim(), true );
-                failure.display(3);
+
+                i( t(current_depth+3) + '$red $_f ) reset ${failure.test.name}');
+                i( t(current_depth+4) + '$error $dim because $reset $red ${failure.details} $reset');
+                i( dim, true );
+
+                failure.display(current_depth+2);
+
                 doreset();
                 _f++;
             }
         } else {
-            _log( ok() + green() + ' ' + total + ' tests completed. ' +reset()+ dim() + ' (' + total_time + 'ms' + ')' + reset());
+            i( t(current_depth+2) + '$ok $green $total tests completed. $reset $dim (${total_time}ms) $reset');
         }
 
-        _log('\n');
+        i('\n');
 
         doreset();
 
@@ -91,35 +104,34 @@ class Mohxa {
 
 //Helpers
 
-    @:noCompletion
-    public function onfail( failure:MohxaFailure ) {
+    function onfail( failure:MohxaFailure ) {
 
-        _log( tabs(failure.test.set.depth+3) + error() + red() + ' fail (' + failed + ')'  + reset());
+        i( t(failure.test.set.depth+5) + '$error $red fail ($failed) $reset' );
+
         failures.set( failed, failure );
+
         failed++;
         tfailed++;
 
     } //onfail
 
-    @:noCompletion
-    public function onrun(t:MohxaTest) {
+    function onrun(test:MohxaTest) {
 
-        _log( tabs(t.set.depth+2) + dim() + dot() + ' ' + t.name +  reset() );
+        i( t(test.set.depth+4) + '$dim$dot ${test.name} $reset');
 
     } //onrun
 
-    @:noCompletion
-    public function onpass(t:MohxaTest, runtime:Float ) {
+    function onpass(test:MohxaTest, runtime:Float ) {
 
         var _time = '';
 
         if(runtime > 50 && runtime < 100) {
-            _time = reset() + yellow() + ' (' + runtime + 'ms)';
+            _time = '$reset $yellow (${runtime}ms)';
         } else if(runtime > 100) {
-            _time =  reset() + red() + ' (' + runtime + 'ms)';
+            _time =  '$reset $red (${runtime}ms)';
         }
 
-        _log( tabs(t.set.depth+3) + ok() + green() + ' pass' + _time + reset() );
+        i( t(test.set.depth+5) + '$ok$green pass $_time $reset' );
 
     } //onpass
 
@@ -131,7 +143,7 @@ class Mohxa {
 
         var _parsed = strip_mohxa_calls( haxe.CallStack.callStack() );
 
-        _log( tabs(current_depth+2) + dim() + _parsed[0] + ': ' + e + reset() );
+        i( t(current_depth+6) + '$dim ${_parsed[0]} : $e $reset' );
 
     } //log
 
@@ -139,6 +151,7 @@ class Mohxa {
 
         total++;
         ttotal++;
+
         current_set.add_test( new MohxaTest(this, desc, handler) );
 
     } //it
@@ -176,24 +189,30 @@ class Mohxa {
 
     } //afterEach
 
+    function t0(_t) return (_t.length>0) ? _t : '';
+    function t1(_t) return (_t.length>0) ? '($_t)' : '';
+    @:generic function e0<T>(_f,_v:T,_e:T,_t,_o) return t(current_set.depth+6) + '$error$dim ($_f) ${t0(_t)} $reset $red ($_v $_o $_e) $reset';
+    @:generic function e1<T>(_f,_v:T,_e:T,_t,_o) return '($_f) ($_v $_o $_e)  ${t1(_t)}';
+    @:generic function p0<T>(_f,_v:T,_e:T,_t,_o) return t(current_set.depth+6) + '$ok$dim ${t0(_t)} $reset';
+
     @:generic
     public function equal<T>(value:T, expected:T, ?tag:String = '') {
 
         if( value != expected ) {
-            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
-            throw (value + ' != ' + expected) + '  ' + ((tag.length>0) ? '('+tag+')' : '');
+            v( e0('equal', value, expected, tag, '!=') );
+            throw e1('equal', value, expected, tag, '!=');
         } else {
-            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );  //' ' +reset() + green() + (value + ' == ' + expected) +
+            v( p0('equal', value, expected, tag, '==') );
         }
     }
 
     @:generic
     public function notequal<T>(value:T, unexpected:T, ?tag:String = '') {
         if( value == unexpected ) {
-            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' +reset() + red() + (value + ' == ' + unexpected) + reset() );
-            throw (value + ' == ' + unexpected) + '  ' + ((tag.length>0) ? '('+tag+')' : '');
+            v( e0('notequal', value, unexpected, tag, '==') );
+            throw e1('notequal', value, unexpected, tag, '==');
         } else {
-            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
+            v( p0('notequal', value, unexpected, tag, '!=') );
         }
     }
 
@@ -201,19 +220,19 @@ class Mohxa {
 
     public function equalfloat(value:Float, expected:Float, ?tag:String = '') {
         if(!(Math.abs(expected - value) < epsilon)) {
-            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
-            throw (value + ' == ' + expected) + ' (float) ' + ((tag.length>0) ? '('+tag+')' : '');
+            v( e0('equalfloat', value, expected, tag, '!=') );
+            throw e1('equalfloat', value, expected, tag, '!=');
         } else {
-            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
+            v( p0('equalfloat', value, expected, tag, '==') );
         }
     }
 
     public function equalint(value:Int, expected:Int, ?tag:String = '') {
         if(Std.int(value) != Std.int(expected)) {
-            _logv( tabs(current_set.depth+4) + error() + dim() + ' ' + ((tag.length>0) ? tag : '') + ' ' + reset() + red() + (value + ' != ' + expected) + reset() );
-            throw (value + ' == ' + expected) + ' (int) ' + ((tag.length>0) ? '('+tag+')' : '');
+            v( e0('equalint', value, expected, tag, '!=') );
+            throw e1('equalint', value, expected, tag, '!=');
         } else {
-            _logv( tabs(current_set.depth+4) + ok() + dim() + ' ' + ((tag.length>0) ? tag : '') + reset() );
+            v( p0('equalint', value, expected, tag, '==') );
         }
     }
 
@@ -230,15 +249,13 @@ class Mohxa {
 //Internal API helpers
 
     public static var verbose = false;
-    @:noCompletion
-    public static function _logv(v:Dynamic, ?print:Bool = false) {
-        if(verbose) _log(v, print);
+    static function v(v:Dynamic, ?print:Bool = false) {
+        if(verbose) i(v, print);
     }
 
-    @:noCompletion
-    public static function _log(v:Dynamic, ?print:Bool = false) {
+    static function i(v:Dynamic, ?print:Bool = false) {
 
-        #if (cpp || neko)
+        #if sys
             if(!print) {
                 Sys.println(v);
             } else {
@@ -252,8 +269,7 @@ class Mohxa {
 
     } //_log
 
-    @:noCompletion
-    public function strip_mohxa_calls(list:Array<haxe.CallStack.StackItem>) : Array<String> {
+    function strip_mohxa_calls(list:Array<haxe.CallStack.StackItem>) : Array<String> {
 
         var results = [];
 
@@ -268,11 +284,11 @@ class Mohxa {
 
     } //strip_mohxa_calls
 
-    @:noCompletion
-    public function tabs(t:Int, tabwidth:Int=2) {
+        //t = tab count, w = width
+    function t(c:Int, w:Int=2) {
 
         var s = '';
-        for(i in 0 ... (t*tabwidth)) {
+        for(i in 0 ... (c*w)) {
             s+=' ';
         }
 
@@ -282,16 +298,15 @@ class Mohxa {
 
     public static function finish() {
         ttime = fixed(ttime);
-        _log('Mohxa finished with :');
+        i('Mohxa finished with :');
         if(tfailed > 0) {
-            _log( error() + ' ' + tfailed + ' of ' + ttotal + ' failed  (' + dim() + ttime + 'ms' + reset() + ') \n' );
+            i( '$error $tfailed of $ttotal failed $dim(${ttime}ms ) $reset\n' );
         } else {
-            _log( ok() + green() + ' ' + ttotal + ' tests completed. ' +reset()+ dim() + ' (' + ttime + 'ms' + ')' + reset());
+            i( '$ok $green $ttotal tests completed. $dim(${ttime}ms) $reset');
         }
     }
 
-    @:noCompletion
-    public static function fixed(v:Float, p:Int=3) {
+    static function fixed(v:Float, p:Int=3) {
         var n = Math.pow(10,p);
         return (Std.int(v*n) / n);
     }
@@ -313,16 +328,29 @@ class Mohxa {
 
     } //setup_logging
 
-    static function doreset()  { _log(reset(), true); }
-    static function dot()      { return symbols.dot; }
-    static function reset()    { return !use_colors ? '' : "\033[0m";  }
-    static function yellow()   { return !use_colors ? '' : "\033[93m"; }
-    static function green()    { return !use_colors ? '' : "\033[92m"; }
-    static function red()      { return !use_colors ? '' : "\033[91m"; }
-    static function bright()   { return !use_colors ? '' : "\033[1m";  }
-    static function dim()      { return !use_colors ? '' : "\033[2m";  }
-    static function ok()       { return !use_colors ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
-    static function error()    { return !use_colors ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
+    static function doreset()  { i(reset, true); }
+
+    static var dot      (get,null) : String;
+    static var ok       (get,null) : String;
+    static var error    (get,null) : String;
+
+    static var reset    (get,null) : String;
+    static var yellow   (get,null) : String;
+    static var green    (get,null) : String;
+    static var red      (get,null) : String;
+    static var bright   (get,null) : String;
+    static var dim      (get,null) : String;
+
+    static function get_dot()       { return symbols.dot; }
+    static function get_ok()        { return !use_colors ? symbols.ok : "\033[92m"+symbols.ok+"\033[0m"; }
+    static function get_error()     { return !use_colors ? symbols.err : "\033[91m"+symbols.err+"\033[0m"; }
+
+    static function get_reset()    { return !use_colors ? '' : "\033[0m";  }
+    static function get_yellow()   { return !use_colors ? '' : "\033[93m"; }
+    static function get_green()    { return !use_colors ? '' : "\033[92m"; }
+    static function get_red()      { return !use_colors ? '' : "\033[91m"; }
+    static function get_bright()   { return !use_colors ? '' : "\033[1m";  }
+    static function get_dim()      { return !use_colors ? '' : "\033[2m";  }
 
 } //Mohxa
 
@@ -370,17 +398,18 @@ class MohxaFailure {
 
     } //new
 
-    public function display(t:Int) {
+    public function display(tabs:Int) {
 
         var _parsed = test.runner.strip_mohxa_calls(stack);
         for(item in _parsed) {
-            Mohxa._log( test.runner.tabs(t) + item );
+            Mohxa.i( test.runner.t(tabs) + item );
         }
 
     } //display
 
 } //MohxaFailure
 
+@:allow(Mohxa)
 class MohxaTestSet extends MohxaRunnable {
 
     public var tests : Array<MohxaTest>;
@@ -393,7 +422,7 @@ class MohxaTestSet extends MohxaRunnable {
 
         _group.depth = depth+1;
         groups.push( _group );
-        // trace( runner.tabs(depth) + ' > adding group ' + _group.name + ' at ' + (depth+1));
+        // trace( runner.t(depth) + ' > adding group ' + _group.name + ' at ' + (depth+1));
 
     } //add_group
 
@@ -401,7 +430,7 @@ class MohxaTestSet extends MohxaRunnable {
 
         _test.set = this;
         tests.push( _test );
-        // trace( runner.tabs(depth) + ' > adding test ' + _test.name );
+        // trace( runner.t(depth) + ' > adding test ' + _test.name );
 
     } //add_test
 
@@ -450,7 +479,7 @@ class MohxaTestSet extends MohxaRunnable {
             runner.current_depth = depth;
             runner.current_set = group;
 
-            Mohxa._log(runner.tabs(depth) + group.name );
+            Mohxa.i(runner.t(depth+4) + '${Mohxa.dot} ${group.name}' );
 
             group.run();
             group._traverse();
