@@ -138,7 +138,7 @@ class Mohxa {
 //API
 
 
-    @:generic
+    #if !mohxa_no_generic @:generic #end
     public function log<T>( e:T ) {
 
         var _parsed = strip_mohxa_calls( haxe.CallStack.callStack() );
@@ -191,11 +191,11 @@ class Mohxa {
 
     function t0(_t) return (_t.length>0) ? _t : '';
     function t1(_t) return (_t.length>0) ? '($_t)' : '';
-    @:generic function e0<T>(_f,_v:T,_e:T,_t,_o) return t(current_set.depth+6) + '$error$dim ($_f) ${t0(_t)} $reset $red ($_v $_o $_e) $reset';
-    @:generic function e1<T>(_f,_v:T,_e:T,_t,_o) return '($_f) ($_v $_o $_e)  ${t1(_t)}';
-    @:generic function p0<T>(_f,_v:T,_e:T,_t,_o) return t(current_set.depth+6) + '$ok$dim ${t0(_t)} $reset';
+    #if !mohxa_no_generic @:generic #end function e0<T>(_f,_v:T,_e:T,_t,_o) return t(current_set.depth+6) + '$error$dim ($_f) ${t0(_t)} $reset $red ($_v $_o $_e) $reset';
+    #if !mohxa_no_generic @:generic #end function e1<T>(_f,_v:T,_e:T,_t,_o) return '($_f) ($_v $_o $_e)  ${t1(_t)}';
+    #if !mohxa_no_generic @:generic #end function p0<T>(_f,_v:T,_e:T,_t,_o) return t(current_set.depth+6) + '$ok$dim ${t0(_t)} $reset';
 
-    @:generic
+    #if !mohxa_no_generic @:generic #end
     public function equal<T>(value:T, expected:T, ?tag:String = '') {
 
         if( value != expected ) {
@@ -206,7 +206,7 @@ class Mohxa {
         }
     }
 
-    @:generic
+    #if !mohxa_no_generic @:generic #end
     public function notequal<T>(value:T, unexpected:T, ?tag:String = '') {
         if( value == unexpected ) {
             v( e0('notequal', value, unexpected, tag, '==') );
