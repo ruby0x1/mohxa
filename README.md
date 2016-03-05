@@ -24,7 +24,7 @@ Usually -debug flag is required for Stack traces.
 
 `haxelib install mohxa`   
 `haxelib git mohxa https://github.com/underscorediscovery/mohxa.git`    
-`haxelib local mohxa /path/to/mohxa-1.0.2.zip` (from releases)   
+`haxelib local mohxa /path/to/mohxa-1.1.0.zip` (from releases)   
 
 ---
 
@@ -78,9 +78,43 @@ class StackTest extends Mohxa {
 
 ![many](./screens/mohxa_many.png)
 
+### mohxa.Run
+
+Often times it is convenient to split test instances into groups.
+A Run is a group of test instances, which runs the group,
+and collates the `total`, `failed` and `time` properties from the run.
+
+```haxe
+
+class Simple extends mohxa.Mohxa {
+
+    public function new() {
+        super();
+
+        describe('simple', function() {
+            it('exists', function() {
+                equal(true, true);
+            });
+        });
+
+    } //new
+
+} //Simple
+
+var run = new mohxa.Run([ new Simple() ]);
+
+trace('completed ${run.total} tests, ${run.failed} failures (${run.time}ms)');
+
+```
+
+You can also pass `false` to the constructor and call `run` manually.
+
+![run](./screens/mohxa_run.png)
+
 ---
 
 ### History
+- 1.1.0 - Added mohxa.Run, for conveniently running groups of test instances, added mohxa_no_generic
 - 1.0.2 - lots MORE code clean up, update readme, tested on other targets. somewhere tags were added...    
 - 1.0.1 - lots of code clean up, remove Dynamic use where not needed, replace with @:generic   
 - 1.0.0 - Initial release
