@@ -101,9 +101,13 @@ class Simple extends mohxa.Mohxa {
 
 } //Simple
 
-var run = new mohxa.Run([ new Simple() ]);
+static function main() {
 
-trace('completed ${run.total} tests, ${run.failed} failures (${run.time}ms)');
+    var run = new mohxa.Run([ new Simple() ]);
+
+    trace('completed ${run.total} tests, ${run.failed} failures (${run.time}ms)');
+
+} //main
 
 ```
 
