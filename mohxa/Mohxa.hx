@@ -275,7 +275,10 @@ class Mohxa {
 
         for(item in list) {
             var _params = item.getParameters();
-            if( Std.string(_params[1]).indexOf('Mohxa.hx') == -1) {
+            var _p1 = Std.string(_params[1]);
+            var has_Moxha_hx = _p1.indexOf('Mohxa.hx') != -1;
+            var has_Moxha_pack = _p1.indexOf('mohxa.Mohxa') != -1;
+            if(!has_Moxha_pack && !has_Moxha_hx) {
                 results.push( ' at ' + _params[1] + ':' + _params[2] );
             }
         }
