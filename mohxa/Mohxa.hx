@@ -216,9 +216,7 @@ class Mohxa {
         }
     }
 
-    static var epsilon = 0.0001;
-
-    public function equalfloat(value:Float, expected:Float, ?tag:String = '') {
+    public function equalfloat(value:Float, expected:Float, ?tag:String = '', epsilon:Float=0.00001) {
         if(!(Math.abs(expected - value) < epsilon)) {
             v( e0('equalfloat', value, expected, tag, '!=') );
             throw e1('equalfloat', value, expected, tag, '!=');
@@ -235,6 +233,21 @@ class Mohxa {
             v( p0('equalint', value, expected, tag, '==') );
         }
     }
+
+    #if !mohxa_no_generic @:generic #end
+    public function equalarray<T>(value:Array<T>, expected:Array<T>, ?tag:String = '') {
+        if(value.length != expected.length) {
+            v( e0('equalarray', value, expected, tag, '!=') );
+            throw e1('equalarray', value, expected, tag, '!=');
+        }
+        var f = true;
+        for(i in 0 ... value.length) {
+            var a = value[i];
+            var b = expected[i];
+            
+            f = f && (a == b);
+        }
+    } //equalarray
 
 //Internal
 
