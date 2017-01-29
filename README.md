@@ -1,6 +1,6 @@
 ### mohxa is a testing library for [Haxe](http://haxe.org/)
 ---
-A BDD style test library based closely on http://visionmedia.github.io/mocha/
+A BDD style test library based closely on http://mochajs.org/
 
 (still pronounced mocha)
 
